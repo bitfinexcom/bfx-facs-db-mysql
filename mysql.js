@@ -26,7 +26,7 @@ class DbFacility extends Facility {
   constructor(caller, opts, ctx) {
     super(caller, opts, ctx)
 
-    this.name = 'db'
+    this.name = 'db-mysql'
     this._hasConf = true
 
     this.init()
