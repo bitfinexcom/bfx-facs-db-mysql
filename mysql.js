@@ -1,0 +1,60 @@
+'use strict'
+
+const async = require('async')
+const _ = require('lodash')
+const mysql = require('mysql')
+const Facility = require('./base')
+
+function client(conf, label) {
+  var db = mysql.createPool(_.extend({
+    connectionLimit: 100,
+    timezone: '+00:00',
+    supportBigNumbers: true,
+    bigNumberStrings: true,
+    dateStrings: true
+  }, conf))
+
+  db.on('error', err => {
+    console.error(label || 'generic', err)        
+  })
+
+  return db
+}
+
+class DbFacility extends Facility {
+
+  constructor(caller, opts, ctx) {
+    super(caller, opts, ctx)
+
+    this.name = 'db'
+    this._hasConf = true
+
+    this.init()
+  }
+
+  _start(cb) {
+    async.series([
+      next => { super._start(next) },
+      next => {
+        this.cli = client(_.pick(
+          this.conf,
+          ['host', 'port', 'user', 'password', 'database']
+        ))
+        next()
+      }
+    ], cb)
+  }
+
+  _stop(cb) {
+    async.series([
+      next => { super._stop(next) },
+      next => {
+        this.cli.end()
+        delete this.cli
+        next()
+      }
+    ], cb)
+  }
+}
+
+module.exports = DbFacility 
