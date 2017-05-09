@@ -1,8 +1,8 @@
 {
-  "name": "bfx-facs-base",
+  "name": "bfx-facs-db-mysql",
   "version": "0.0.1",
   "private": false,
-  "description": "Bitfinex Facility",
+  "description": "Bitfinex DB MySQL Facility",
   "author": {
     "name": "prdn",
     "email": "paolo@bitfinex.com"
@@ -33,12 +33,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitfinexcom/bfx-facs-base.git"
+    "url": "git+https://github.com/bitfinexcom/bfx-facs-db-mysql.git"
   },
   "bugs": {
-    "url": "https://github.com/bitfinexcom/bfx-facs-base/issues"
+    "url": "https://github.com/bitfinexcom/bfx-facs-db-mysql/issues"
   },
-  "homepage": "https://github.com/bitfinexcom/bfx-facs-base",
+  "homepage": "https://github.com/bitfinexcom/bfx-facs-db-mysql",
   "maintainers": [
     {
       "name": "prdn",
