@@ -11,9 +11,9 @@
     "bitfinex"
   ],
   "dependencies": {
-    "async": "^2.4.0",
+    "async": "~2.4.0",
     "lodash": "~4.17.4",
-    "mysql": "^2.13.0"
+    "mysql": "~2.13.0"
   },
   "engine": {
     "node": ">=6.0"
