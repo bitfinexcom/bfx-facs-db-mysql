@@ -5,7 +5,7 @@ const _ = require('lodash')
 const mysql = require('mysql')
 const Facility = require('./base')
 
-function client(conf, label) {
+function client (conf, label) {
   var db = mysql.createPool(_.extend({
     connectionLimit: 100,
     timezone: '+00:00',
@@ -15,15 +15,14 @@ function client(conf, label) {
   }, conf))
 
   db.on('error', err => {
-    console.error(label || 'generic', err)        
+    console.error(label || 'generic', err)
   })
 
   return db
 }
 
 class DbFacility extends Facility {
-
-  constructor(caller, opts, ctx) {
+  constructor (caller, opts, ctx) {
     super(caller, opts, ctx)
 
     this.name = 'db-mysql'
@@ -32,7 +31,7 @@ class DbFacility extends Facility {
     this.init()
   }
 
-  _start(cb) {
+  _start (cb) {
     async.series([
       next => { super._start(next) },
       next => {
@@ -45,7 +44,7 @@ class DbFacility extends Facility {
     ], cb)
   }
 
-  _stop(cb) {
+  _stop (cb) {
     async.series([
       next => { super._stop(next) },
       next => {
@@ -57,4 +56,4 @@ class DbFacility extends Facility {
   }
 }
 
-module.exports = DbFacility 
+module.exports = DbFacility
