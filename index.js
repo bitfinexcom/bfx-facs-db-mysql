@@ -3,7 +3,7 @@
 const async = require('async')
 const _ = require('lodash')
 const mysql = require('mysql')
-const Facility = require('./base')
+const Base = require('bfx-facs-base')
 
 function client (conf, label) {
   var db = mysql.createPool(_.extend({
@@ -21,7 +21,7 @@ function client (conf, label) {
   return db
 }
 
-class DbFacility extends Facility {
+class DbFacility extends Base {
   constructor (caller, opts, ctx) {
     super(caller, opts, ctx)
 
