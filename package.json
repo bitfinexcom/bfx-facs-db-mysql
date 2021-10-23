@@ -12,10 +12,10 @@
     "bitfinex"
   ],
   "dependencies": {
-    "async": "^2.6.1",
+    "async": "^3.2.1",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
-    "lodash": "^4.17.10",
-    "mysql": "^2.15.0"
+    "lodash": "^4.17.21",
+    "mysql": "^2.18.1"
   },
   "engine": {
     "node": ">=8.0"
