@@ -36,6 +36,22 @@ try {
   console.log('an error occurred', err)
 }
 
+// event usage
+fac.cli.query(
+  {
+    sql: 'SELECT * FROM sampleTestTable WHERE age >= ?',
+    values: [25]
+  }
+)
+  .on('error', (err) => {
+    done(err)
+  })
+  .on('result', (res) => {
+    assert.strictEqual(typeof res, 'object')
+    assert.strictEqual(res.affectedRows, 1)
+    done()
+  })
+
 // closing resources
 fac.stop((err) => {
   if (err) console.log('an error occurred', err)
