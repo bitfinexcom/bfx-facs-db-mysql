@@ -4,9 +4,10 @@ const async = require('async')
 const _ = require('lodash')
 const mysql = require('mysql')
 const Base = require('bfx-facs-base')
+const { promisify } = require('util')
 
 function client (conf, label) {
-  var db = mysql.createPool(_.extend({
+  const db = mysql.createPool(_.extend({
     connectionLimit: 100,
     timezone: '+00:00',
     supportBigNumbers: true,
@@ -39,6 +40,9 @@ class DbFacility extends Base {
           this.conf,
           ['host', 'port', 'user', 'password', 'database']
         ))
+
+        this.queryAsync = promisify(this.cli.query.bind(this.cli))
+
         next()
       }
     ], cb)

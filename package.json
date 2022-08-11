@@ -1,11 +1,17 @@
 {
   "name": "bfx-facs-db-mysql",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": false,
   "description": "Bitfinex DB MySQL Facility",
   "author": {
     "name": "prdn",
     "email": "paolo@bitfinex.com"
+  },
+  "scripts": {
+    "lint": "standard",
+    "format": "standard --fix",
+    "test": "npm run lint && npm run unit",
+    "unit": "NODE_ENV=test mocha ./test"
   },
   "main": "index.js",
   "keywords": [
@@ -29,6 +35,14 @@
     {
       "name": "prdn",
       "email": "paolo@bitfinex.com"
+    },
+    {
+      "name": "vigan.abd",
+      "email": "vigan.abdurrahmani@bitfinex.com"
     }
-  ]
+  ],
+  "devDependencies": {
+    "mocha": "^10.0.0",
+    "standard": "^17.0.0"
+  }
 }
