@@ -63,6 +63,81 @@ class DbFacility extends Base {
    * @see https://www.npmjs.com/package/mysql#pooling-connections
    * @see https://www.npmjs.com/package/mysql#transactions
    *
+   * @param {(conn: { cli: mysql.PoolConnection }, txFuncCb: (err: Error|undefined) => void) => void} func
+   * @param {(err: Error|undefined) => void} cb
+   */
+  runTransaction (func, cb) {
+    /** @type {mysql.PoolConnection} */
+    let conn = null
+    let txStarted = false
+    let txCommited = false
+
+    async.series({
+      conn: (next) => {
+        this.cli.getConnection((err, res) => {
+          if (err) return next(err)
+
+          conn = res // intentional
+          return next()
+        })
+      },
+      begin: (next) => {
+        conn.beginTransaction(next)
+      },
+      execute: (next) => {
+        txStarted = true
+        func({ cli: conn }, next)
+      },
+      commit: (next) => {
+        conn.commit(next)
+      },
+      release: (next) => {
+        txCommited = true
+        try {
+          conn.release()
+          return next()
+        } catch (err) {
+          return next(err)
+        }
+      }
+    }, (txFailureErr) => {
+      if (!txFailureErr) return cb()
+
+      if (txStarted && !txCommited) {
+        return async.series({
+          rollback: (next) => {
+            conn.rollback(next)
+          },
+          release: (next) => {
+            try {
+              conn.release()
+              return next()
+            } catch (err) {
+              return next(err)
+            }
+          }
+        }, (rollbackErr) => {
+          if (!rollbackErr) {
+            return cb(txFailureErr)
+          }
+
+          try {
+            conn.destroy() // force cleanup session
+            return cb(txFailureErr)
+          } catch (destroyErr) {
+            return cb(destroyErr)
+          }
+        })
+      }
+
+      return cb(txFailureErr)
+    })
+  }
+
+  /**
+   * @see https://www.npmjs.com/package/mysql#pooling-connections
+   * @see https://www.npmjs.com/package/mysql#transactions
+   *
    * @param {(conn: { queryAsync: Function, cli: mysql.PoolConnection }) => Promise<void>} func
    */
   async runTransactionAsync (func) {
