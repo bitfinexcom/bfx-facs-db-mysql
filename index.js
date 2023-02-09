@@ -58,6 +58,47 @@ class DbFacility extends Base {
       }
     ], cb)
   }
+
+  /**
+   * @see https://www.npmjs.com/package/mysql#pooling-connections
+   * @see https://www.npmjs.com/package/mysql#transactions
+   *
+   * @param {(conn: { queryAsync: Function, cli: mysql.PoolConnection }) => Promise<void>} func
+   */
+  async runTransactionAsync (func) {
+    /** @type {mysql.PoolConnection} */
+    let db = null
+    let txStarted = false
+    let txCommited = false
+
+    try {
+      db = await new Promise((resolve, reject) => {
+        this.cli.getConnection((err, cli) => err ? reject(err) : resolve(cli))
+      })
+      const queryAsync = promisify(db.query.bind(db))
+
+      await new Promise((resolve, reject) => db.beginTransaction((err) => err ? reject(err) : resolve()))
+      txStarted = true
+
+      await func({ queryAsync, cli: db })
+
+      await new Promise((resolve, reject) => db.commit((err) => err ? reject(err) : resolve()))
+      txCommited = true
+
+      db.release()
+    } catch (err) {
+      if (txStarted && !txCommited) {
+        try {
+          await new Promise((resolve, reject) => db.rollback((err) => err ? reject(err) : resolve()))
+          db.release()
+        } catch (err) {
+          db.destroy() // force cleanup session
+        }
+      }
+
+      throw err
+    }
+  }
 }
 
 module.exports = DbFacility
