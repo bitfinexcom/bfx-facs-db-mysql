@@ -67,32 +67,32 @@ class DbFacility extends Base {
    */
   async runTransactionAsync (func) {
     /** @type {mysql.PoolConnection} */
-    let db = null
+    let conn = null
     let txStarted = false
     let txCommited = false
 
     try {
-      db = await new Promise((resolve, reject) => {
+      conn = await new Promise((resolve, reject) => {
         this.cli.getConnection((err, cli) => err ? reject(err) : resolve(cli))
       })
-      const queryAsync = promisify(db.query.bind(db))
+      const queryAsync = promisify(conn.query.bind(conn))
 
-      await new Promise((resolve, reject) => db.beginTransaction((err) => err ? reject(err) : resolve()))
+      await new Promise((resolve, reject) => conn.beginTransaction((err) => err ? reject(err) : resolve()))
       txStarted = true
 
-      await func({ queryAsync, cli: db })
+      await func({ queryAsync, cli: conn })
 
-      await new Promise((resolve, reject) => db.commit((err) => err ? reject(err) : resolve()))
+      await new Promise((resolve, reject) => conn.commit((err) => err ? reject(err) : resolve()))
       txCommited = true
 
-      db.release()
+      conn.release()
     } catch (err) {
       if (txStarted && !txCommited) {
         try {
-          await new Promise((resolve, reject) => db.rollback((err) => err ? reject(err) : resolve()))
-          db.release()
+          await new Promise((resolve, reject) => conn.rollback((err) => err ? reject(err) : resolve()))
+          conn.release()
         } catch (err) {
-          db.destroy() // force cleanup session
+          conn.destroy() // force cleanup session
         }
       }
 
