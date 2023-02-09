@@ -196,6 +196,107 @@ describe('DbFacility tests', () => {
     }).timeout(5000)
   })
 
+  describe('transaction callback tests', () => {
+    afterEach(async () => {
+      await fac.queryAsync('DELETE FROM sampleTestTable')
+    })
+
+    it('should commit changes in successful transaction', (done) => {
+      const countSql = 'SELECT * FROM sampleTestTable ORDER BY name ASC'
+
+      async.series([
+        (next) => {
+          fac.cli.query(countSql, (err, res) => {
+            if (err) return next(err)
+            try {
+              assert.strictEqual(res.length, 0)
+              return next()
+            } catch (err) {
+              return next(err)
+            }
+          })
+        },
+        (next) => {
+          fac.runTransaction((conn, txFuncCb) => {
+            async.series([
+              (nextStmt) => conn.cli.query(
+                'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+                ['john doe', 27],
+                nextStmt
+              ),
+              (nextStmt) => conn.cli.query(
+                {
+                  sql: 'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+                  values: ['jane doe', 25]
+                },
+                nextStmt
+              )
+            ], txFuncCb)
+          }, next)
+        },
+        (next) => {
+          fac.cli.query(countSql, (err, res) => {
+            if (err) return next(err)
+            try {
+              assert.strictEqual(res.length, 2)
+              assert.deepStrictEqual(res.map((x) => x.name), ['jane doe', 'john doe'])
+              return next()
+            } catch (err) {
+              return next(err)
+            }
+          })
+        }
+      ], done)
+    }).timeout(5000)
+
+    it('should rollback changes on failure', (done) => {
+      const countSql = 'SELECT * FROM sampleTestTable ORDER BY name ASC'
+
+      async.series([
+        (next) => {
+          fac.cli.query(countSql, (err, res) => {
+            if (err) return next(err)
+            try {
+              assert.strictEqual(res.length, 0)
+              return next()
+            } catch (err) {
+              return next(err)
+            }
+          })
+        },
+        (next) => {
+          fac.runTransaction((conn, txFuncCb) => {
+            async.series([
+              (next) => conn.cli.query(
+                'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+                ['john doe', 27],
+                next
+              ),
+              (next) => next(new Error('ERR_SIMULATE'))
+            ], txFuncCb)
+          }, next)
+        }
+      ], (execErr) => {
+        try {
+          assert.ok(execErr instanceof Error)
+          assert.ok(execErr.message === 'ERR_SIMULATE')
+
+          fac.cli.query(countSql, (assertErr, res) => {
+            if (assertErr) return done(assertErr)
+            try {
+              assert.strictEqual(res.length, 0)
+              return done()
+            } catch (err) {
+              return done(err)
+            }
+          })
+        } catch (assertErr) {
+          done(assertErr)
+        }
+      })
+    }).timeout(5000)
+  })
+
   describe('transaction async tests', () => {
     afterEach(async () => {
       await fac.queryAsync('DELETE FROM sampleTestTable')
