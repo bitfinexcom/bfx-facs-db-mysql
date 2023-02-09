@@ -56,6 +56,49 @@ fac.cli.query(
 fac.stop((err) => {
   if (err) console.log('an error occurred', err)
 })
+
+// callback transactions
+fac.runTransaction((conn, txFuncCb) => {
+  async.series([
+    (nextStmt) => conn.cli.query(
+      'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+      ['john doe', 27],
+      nextStmt
+    ),
+    (nextStmt) => conn.cli.query(
+      {
+        sql: 'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+        values: ['jane doe', 25]
+      },
+      nextStmt
+    )
+  ], txFuncCb)
+}, (err) => {
+  if (err) {
+    console.log('transaction failed')
+  } else {
+    console.log('transcation succeeded')
+  }
+})
+
+// promise transactions
+await fac.runTransactionAsync(async (conn) => {
+  await conn.queryAsync(
+    'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+    ['john doe', 27]
+  )
+
+  await conn.queryAsync({
+    sql: 'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+    values: ['jane doe', 25]
+  })
+
+  await new Promise((resolve, reject) => conn.cli.query(
+    'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+    [conn.cli.escape('james doe'), 23],
+    (err) => err ? reject(err) : resolve()
+  ))
+})
 ```
 
 ## Testing
