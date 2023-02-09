@@ -196,6 +196,84 @@ describe('DbFacility tests', () => {
     }).timeout(5000)
   })
 
+  describe('transaction async tests', () => {
+    afterEach(async () => {
+      await fac.queryAsync('DELETE FROM sampleTestTable')
+    })
+
+    it('should commit changes in successful transaction', async () => {
+      const countSql = 'SELECT * FROM sampleTestTable ORDER BY name ASC'
+
+      const beforeRes = await fac.queryAsync(countSql)
+      assert.strictEqual(beforeRes.length, 0)
+
+      await fac.runTransactionAsync(async (conn) => {
+        await conn.queryAsync(
+          'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+          ['john doe', 27]
+        )
+
+        await conn.queryAsync({
+          sql: 'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+          values: ['jane doe', 25]
+        })
+      })
+
+      const afterRes = await fac.queryAsync(countSql)
+      assert.strictEqual(afterRes.length, 2)
+      assert.deepStrictEqual(afterRes.map((x) => x.name), ['jane doe', 'john doe'])
+    }).timeout(5000)
+
+    it('should have access to connection instance', async () => {
+      const countSql = 'SELECT * FROM sampleTestTable ORDER BY name ASC'
+
+      const beforeRes = await fac.queryAsync(countSql)
+      assert.strictEqual(beforeRes.length, 0)
+
+      await fac.runTransactionAsync(async (conn) => {
+        await conn.queryAsync(
+          'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+          [conn.cli.escape('john doe'), 27]
+        )
+
+        await new Promise((resolve, reject) => conn.cli.query(
+          'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+          [conn.cli.escape('jane doe'), 25],
+          (err) => err ? reject(err) : resolve()
+        ))
+      })
+
+      const afterRes = await fac.queryAsync(countSql)
+      assert.strictEqual(afterRes.length, 2)
+      assert.deepStrictEqual(afterRes.map((x) => x.name), ['\'jane doe\'', '\'john doe\''])
+    }).timeout(5000)
+
+    it('should rollback changes on failure', async () => {
+      const countSql = 'SELECT * FROM sampleTestTable ORDER BY name ASC'
+
+      const beforeRes = await fac.queryAsync(countSql)
+      assert.strictEqual(beforeRes.length, 0)
+
+      const promise = fac.runTransactionAsync(async (conn) => {
+        await conn.queryAsync(
+          'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+          ['john doe', 27]
+        )
+
+        throw new Error('ERR_SIMULATE')
+      })
+
+      await assert.rejects(promise, (err) => {
+        assert.ok(err instanceof Error)
+        assert.ok(err.message === 'ERR_SIMULATE')
+        return true
+      })
+
+      const afterRes = await fac.queryAsync(countSql)
+      assert.strictEqual(afterRes.length, 0)
+    }).timeout(5000)
+  })
+
   describe('stop tests', () => {
     before(async () => {
       // make sure resources are cleaned
