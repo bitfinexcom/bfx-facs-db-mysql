@@ -99,7 +99,38 @@ await fac.runTransactionAsync(async (conn) => {
     (err) => err ? reject(err) : resolve()
   ))
 })
+
+// error handling in transactions
+try {
+  await fac.runTransactionAsync(async (conn) => {
+    await conn.queryAsync(
+      'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+      ['john doe', 27]
+    )
+
+    throw new Error('ERR_SIMULATE')
+  })
+} catch (err) {
+  console.log(err)
+  // DbTransactionError: ERR_TX_FLOW_FAILURE
+  //     at DbFacility.runTransactionAsync (/home/someuser/somepath/bfx-facs-db-mysql/index.js:214:13)
+  //     at processTicksAndRejections (internal/process/task_queues.js:95:5)
+  //     at async waitForActual (assert.js:788:5)
+  //     at async Function.rejects (assert.js:909:25)
+  //     at async Context.<anonymous> (/home/someuser/somepath/bfx-facs-db-mysql/test/unit.js:373:7) {
+  //   originalError: Error: ERR_SIMULATE
+  //       at /home/someuser/somepath/bfx-facs-db-mysql/test/unit.js:370:15
+  //       at processTicksAndRejections (internal/process/task_queues.js:95:5)
+  //       at async DbFacility.runTransactionAsync (/home/someuser/somepath/bfx-facs-db-mysql/index.js:191:7)
+  //       at async waitForActual (assert.js:788:5)
+  //       at async Function.rejects (assert.js:909:25)
+  //       at async Context.<anonymous> (/home/someuser/somepath/bfx-facs-db-mysql/test/unit.js:373:7),
+  //   txState: { started: true, commited: false, reverted: true }
+  // }
+}
 ```
+
+**!NOTE: nested transactions are not supported through method runTransaction and runTransactionAsync methods**
 
 ## Testing
 
