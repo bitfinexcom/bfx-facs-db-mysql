@@ -5,6 +5,7 @@
 const async = require('async')
 const assert = require('assert')
 const DbFacility = require('../index')
+const { DbTransactionError } = DbFacility
 const fs = require('fs')
 const path = require('path')
 const { EventEmitter } = require('events')
@@ -278,8 +279,13 @@ describe('DbFacility tests', () => {
         }
       ], (execErr) => {
         try {
-          assert.ok(execErr instanceof Error)
-          assert.ok(execErr.message === 'ERR_SIMULATE')
+          assert.ok(execErr instanceof DbTransactionError)
+          assert.ok(execErr.message === 'ERR_TX_FLOW_FAILURE')
+          assert.ok(execErr.originalError instanceof Error)
+          assert.ok(execErr.originalError.message === 'ERR_SIMULATE')
+          assert.strictEqual(execErr.txState.started, true)
+          assert.strictEqual(execErr.txState.commited, false)
+          assert.strictEqual(execErr.txState.reverted, true)
 
           fac.cli.query(countSql, (assertErr, res) => {
             if (assertErr) return done(assertErr)
@@ -366,7 +372,12 @@ describe('DbFacility tests', () => {
 
       await assert.rejects(promise, (err) => {
         assert.ok(err instanceof Error)
-        assert.ok(err.message === 'ERR_SIMULATE')
+        assert.ok(err.message === 'ERR_TX_FLOW_FAILURE')
+        assert.ok(err.originalError instanceof Error)
+        assert.ok(err.originalError.message === 'ERR_SIMULATE')
+        assert.strictEqual(err.txState.started, true)
+        assert.strictEqual(err.txState.commited, false)
+        assert.strictEqual(err.txState.reverted, true)
         return true
       })
 
