@@ -22,6 +22,12 @@ function client (conf, label) {
   return db
 }
 
+function runAsPromise (func, ...params) {
+  return new Promise((resolve, reject) => {
+    func(...params, (err, res) => err ? reject(err) : resolve(res))
+  })
+}
+
 class DbTransactionError extends Error {
   /**
    * @param {string} message
@@ -182,24 +188,22 @@ class DbFacility extends Base {
     let txReverted = false
 
     try {
-      conn = await new Promise((resolve, reject) => {
-        this.cli.getConnection((err, cli) => err ? reject(err) : resolve(cli))
-      })
+      conn = await runAsPromise(this.cli.getConnection.bind(this.cli))
       const queryAsync = promisify(conn.query.bind(conn))
 
-      await new Promise((resolve, reject) => conn.beginTransaction((err) => err ? reject(err) : resolve()))
+      await runAsPromise(conn.beginTransaction.bind(conn))
       txStarted = true
 
       await func({ queryAsync, cli: conn })
 
-      await new Promise((resolve, reject) => conn.commit((err) => err ? reject(err) : resolve()))
+      await runAsPromise(conn.commit.bind(conn))
       txCommited = true
 
       conn.release()
     } catch (txFailureErr) {
       if (txStarted && !txCommited) {
         try {
-          await new Promise((resolve, reject) => conn.rollback((err) => err ? reject(err) : resolve()))
+          await runAsPromise(conn.rollback.bind(conn))
           txReverted = true
           conn.release()
         } catch (releaseErr) {
