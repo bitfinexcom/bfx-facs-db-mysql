@@ -8,6 +8,8 @@ const DbFacility = require('../index')
 const { DbTransactionError } = DbFacility
 const fs = require('fs')
 const path = require('path')
+const sinon = require('sinon')
+const sleep = require('timers/promises').setTimeout
 const { EventEmitter } = require('events')
 
 describe('DbFacility tests', () => {
@@ -436,6 +438,32 @@ describe('DbFacility tests', () => {
       assert.strictEqual(res.value?.name, data[1].name)
       await stream.return()
     })
+
+    it('should not emit new queries unless requested by iterator', async () => {
+      const spy = sinon.spy(EventEmitter.prototype, 'emit')
+
+      const stream = fac.queryStream('SELECT * FROM sampleTestTable')
+
+      let res = await stream.next()
+      assert.strictEqual(res.value?.name, data[0].name)
+
+      res = await stream.next()
+      assert.strictEqual(res.value?.name, data[1].name)
+      await stream.return()
+
+      await sleep(2000)
+      const calls = spy.getCalls().map(x => x.args)
+      spy.restore()
+
+      const resultCalls = calls.filter(x => x[0] === 'result')
+      const closeCalls = calls.filter(x => x[0] === 'close')
+
+      assert.strictEqual(closeCalls.length, 1)
+      assert.strictEqual(resultCalls.length, 2)
+      assert.strictEqual(resultCalls[0][1]?.name, data[0].name)
+      assert.strictEqual(resultCalls[1][1]?.name, data[1].name)
+      spy.restore()
+    }).timeout(10000)
 
     it('should fail on query error', async () => {
       await assert.rejects(fac.queryStream('SELECT FROM sampleTestTable').next(), (err) => {
