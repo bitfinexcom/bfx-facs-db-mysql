@@ -439,7 +439,7 @@ describe('DbFacility tests', () => {
       await stream.return()
     })
 
-    it('should not emit new queries unless requested by iterator', async () => {
+    it('should not fetch new rows unless requested by iterator', async () => {
       const spy = sinon.spy(EventEmitter.prototype, 'emit')
 
       const stream = fac.queryStream('SELECT * FROM sampleTestTable')
