@@ -93,23 +93,19 @@ class DbFacility extends Base {
   }
 
   async * queryStream (query, params = []) {
-    let p = promiseFlat()
-    let conn
-
-    this.cli.getConnection((err, res) => {
-      if (err) {
-        return p.reject(err)
-      }
-      conn = res
-
-      const stream = conn.query(query, params)
-      stream.on('error', (err) => p.reject(err))
-      stream.on('result', (row) => {
-        conn.pause()
-        p.resolve(row)
-      })
-      stream.on('end', () => p.resolve())
+    const conn = await new Promise((resolve, reject) => {
+      this.cli.getConnection((err, res) => err ? reject(err) : resolve(res))
     })
+
+    let p = promiseFlat()
+
+    const stream = conn.query(query, params)
+    stream.on('error', (err) => p.reject(err))
+    stream.on('result', (row) => {
+      conn.pause()
+      p.resolve(row)
+    })
+    stream.on('end', () => p.resolve())
 
     let row
     do {
