@@ -56,7 +56,81 @@ fac.cli.query(
 fac.stop((err) => {
   if (err) console.log('an error occurred', err)
 })
+
+// callback transactions
+fac.runTransaction((conn, txFuncCb) => {
+  async.series([
+    (nextStmt) => conn.cli.query(
+      'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+      ['john doe', 27],
+      nextStmt
+    ),
+    (nextStmt) => conn.cli.query(
+      {
+        sql: 'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+        values: ['jane doe', 25]
+      },
+      nextStmt
+    )
+  ], txFuncCb)
+}, (err) => {
+  if (err) {
+    console.log('transaction failed')
+  } else {
+    console.log('transcation succeeded')
+  }
+})
+
+// promise transactions
+await fac.runTransactionAsync(async (conn) => {
+  await conn.queryAsync(
+    'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+    ['john doe', 27]
+  )
+
+  await conn.queryAsync({
+    sql: 'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+    values: ['jane doe', 25]
+  })
+
+  await new Promise((resolve, reject) => conn.cli.query(
+    'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+    [conn.cli.escape('james doe'), 23],
+    (err) => err ? reject(err) : resolve()
+  ))
+})
+
+// error handling in transactions
+try {
+  await fac.runTransactionAsync(async (conn) => {
+    await conn.queryAsync(
+      'INSERT INTO sampleTestTable (name, age) VALUES (?, ?)',
+      ['john doe', 27]
+    )
+
+    throw new Error('ERR_SIMULATE')
+  })
+} catch (err) {
+  console.log(err)
+  // DbTransactionError: ERR_TX_FLOW_FAILURE
+  //     at DbFacility.runTransactionAsync (/home/someuser/somepath/bfx-facs-db-mysql/index.js:214:13)
+  //     at processTicksAndRejections (internal/process/task_queues.js:95:5)
+  //     at async waitForActual (assert.js:788:5)
+  //     at async Function.rejects (assert.js:909:25)
+  //     at async Context.<anonymous> (/home/someuser/somepath/bfx-facs-db-mysql/test/unit.js:373:7) {
+  //   originalError: Error: ERR_SIMULATE
+  //       at /home/someuser/somepath/bfx-facs-db-mysql/test/unit.js:370:15
+  //       at processTicksAndRejections (internal/process/task_queues.js:95:5)
+  //       at async DbFacility.runTransactionAsync (/home/someuser/somepath/bfx-facs-db-mysql/index.js:191:7)
+  //       at async waitForActual (assert.js:788:5)
+  //       at async Function.rejects (assert.js:909:25)
+  //       at async Context.<anonymous> (/home/someuser/somepath/bfx-facs-db-mysql/test/unit.js:373:7),
+  //   txState: { started: true, commited: false, reverted: true }
+  // }
+}
 ```
+
+**!NOTE: nested transactions are not supported through method runTransaction and runTransactionAsync methods**
 
 ## Testing
 
