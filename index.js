@@ -96,31 +96,37 @@ class DbFacility extends Base {
     const conn = await new Promise((resolve, reject) => {
       this.cli.getConnection((err, res) => err ? reject(err) : resolve(res))
     })
-
-    let p = promiseFlat()
-
-    const stream = conn.query(query, params)
-    stream.on('error', (err) => p.reject(err))
-    stream.on('result', (row) => {
-      conn.pause()
-      p.resolve(row)
-    })
-    stream.on('end', () => p.resolve())
-
-    let row
-    do {
-      row = await p.promise
-      if (row) {
-        yield row
-        p = promiseFlat()
-        conn.resume()
-      }
-    } while (row)
+    let aborted = true
 
     try {
-      conn.release()
-    } catch (err) {
-      conn.destroy()
+      let p = promiseFlat()
+
+      const stream = conn.query(query, params)
+      stream.on('error', (err) => p.reject(err))
+      stream.on('result', (row) => {
+        conn.pause()
+        p.resolve(row)
+      })
+      stream.on('end', () => {
+        aborted = false
+        p.resolve()
+      })
+
+      let row
+      do {
+        row = await p.promise
+        if (row) {
+          yield row
+          p = promiseFlat()
+          conn.resume()
+        }
+      } while (row)
+    } finally {
+      if (aborted) {
+        conn.destroy()
+      } else {
+        conn.release()
+      }
     }
   }
 

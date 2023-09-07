@@ -426,6 +426,17 @@ describe('DbFacility tests', () => {
       assert.strictEqual(i, 2)
     })
 
+    it('should handle connection abortion', async () => {
+      const stream = fac.queryStream('SELECT * FROM sampleTestTable')
+
+      let res = await stream.next()
+      assert.strictEqual(res.value?.name, data[0].name)
+
+      res = await stream.next()
+      assert.strictEqual(res.value?.name, data[1].name)
+      await stream.return()
+    })
+
     it('should fail on query error', async () => {
       await assert.rejects(fac.queryStream('SELECT FROM sampleTestTable').next(), (err) => {
         return err.code === 'ER_PARSE_ERROR'
