@@ -449,20 +449,27 @@ describe('DbFacility tests', () => {
 
       res = await stream.next()
       assert.strictEqual(res.value?.name, data[1].name)
-      await stream.return()
 
       await sleep(2000)
-      const calls = spy.getCalls().map(x => x.args)
-      spy.restore()
+      let calls = spy.getCalls().map(x => x.args)
+      let resultCalls = calls.filter(x => x[0] === 'result')
+      let closeCalls = calls.filter(x => x[0] === 'close')
 
-      const resultCalls = calls.filter(x => x[0] === 'result')
-      const closeCalls = calls.filter(x => x[0] === 'close')
-
-      assert.strictEqual(closeCalls.length, 1)
+      assert.strictEqual(closeCalls.length, 0)
       assert.strictEqual(resultCalls.length, 2)
       assert.strictEqual(resultCalls[0][1]?.name, data[0].name)
       assert.strictEqual(resultCalls[1][1]?.name, data[1].name)
+      await stream.return()
+
+      await sleep(1000)
+      calls = spy.getCalls().map(x => x.args)
+      resultCalls = calls.filter(x => x[0] === 'result')
+      closeCalls = calls.filter(x => x[0] === 'close')
+
       spy.restore()
+
+      assert.strictEqual(closeCalls.length, 1)
+      assert.strictEqual(resultCalls.length, 2)
     }).timeout(10000)
 
     it('should fail on query error', async () => {
