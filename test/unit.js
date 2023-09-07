@@ -426,7 +426,7 @@ describe('DbFacility tests', () => {
       assert.strictEqual(i, 2)
     })
 
-    it('should handle connection abortion', async () => {
+    it('should handle query abortion', async () => {
       const stream = fac.queryStream('SELECT * FROM sampleTestTable')
 
       let res = await stream.next()
