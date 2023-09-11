@@ -8,6 +8,8 @@ const DbFacility = require('../index')
 const { DbTransactionError } = DbFacility
 const fs = require('fs')
 const path = require('path')
+const sinon = require('sinon')
+const sleep = require('timers/promises').setTimeout
 const { EventEmitter } = require('events')
 
 describe('DbFacility tests', () => {
@@ -384,6 +386,97 @@ describe('DbFacility tests', () => {
       const afterRes = await fac.queryAsync(countSql)
       assert.strictEqual(afterRes.length, 0)
     }).timeout(5000)
+  })
+
+  describe('queryStream tests', () => {
+    const data = [
+      { name: 'Legolas', age: 1357 },
+      { name: 'Aragorn', age: 87 },
+      { name: 'Gimli', age: 139 }
+    ]
+    before(async () => {
+      await fac.queryAsync(
+        'INSERT INTO sampleTestTable (name, age) VALUES (?, ?), (?, ?), (?, ?)',
+        data.map(x => Object.values(x)).flat()
+      )
+    })
+
+    after(async () => {
+      await fac.queryAsync('DELETE FROM sampleTestTable')
+    })
+
+    it('should support async iteration of query stream', async () => {
+      let i = 0
+      const stream = fac.queryStream('SELECT * FROM sampleTestTable')
+      for await (const row of stream) {
+        assert.strictEqual(row.name, data[i].name)
+        assert.strictEqual(row.age, data[i].age)
+        i++
+      }
+      assert.strictEqual(i, 3)
+    })
+
+    it('should support params as well', async () => {
+      let i = 0
+      const check = data.slice(1)
+      const stream = fac.queryStream('SELECT * FROM sampleTestTable WHERE age < ?', [1000])
+      for await (const row of stream) {
+        assert.strictEqual(row.name, check[i].name)
+        assert.strictEqual(row.age, check[i].age)
+        i++
+      }
+      assert.strictEqual(i, 2)
+    })
+
+    it('should handle query abortion', async () => {
+      const stream = fac.queryStream('SELECT * FROM sampleTestTable')
+
+      let res = await stream.next()
+      assert.strictEqual(res.value?.name, data[0].name)
+
+      res = await stream.next()
+      assert.strictEqual(res.value?.name, data[1].name)
+      await stream.return()
+    })
+
+    it('should not fetch new rows unless requested by iterator', async () => {
+      const spy = sinon.spy(EventEmitter.prototype, 'emit')
+
+      const stream = fac.queryStream('SELECT * FROM sampleTestTable')
+
+      let res = await stream.next()
+      assert.strictEqual(res.value?.name, data[0].name)
+
+      res = await stream.next()
+      assert.strictEqual(res.value?.name, data[1].name)
+
+      await sleep(2000)
+      let calls = spy.getCalls().map(x => x.args)
+      let resultCalls = calls.filter(x => x[0] === 'result')
+      let closeCalls = calls.filter(x => x[0] === 'close')
+
+      assert.strictEqual(closeCalls.length, 0)
+      assert.strictEqual(resultCalls.length, 2)
+      assert.strictEqual(resultCalls[0][1]?.name, data[0].name)
+      assert.strictEqual(resultCalls[1][1]?.name, data[1].name)
+      await stream.return()
+
+      await sleep(1000)
+      calls = spy.getCalls().map(x => x.args)
+      resultCalls = calls.filter(x => x[0] === 'result')
+      closeCalls = calls.filter(x => x[0] === 'close')
+
+      spy.restore()
+
+      assert.strictEqual(closeCalls.length, 1)
+      assert.strictEqual(resultCalls.length, 2)
+    }).timeout(10000)
+
+    it('should fail on query error', async () => {
+      await assert.rejects(fac.queryStream('SELECT FROM sampleTestTable').next(), (err) => {
+        return err.code === 'ER_PARSE_ERROR'
+      })
+    })
   })
 
   describe('stop tests', () => {

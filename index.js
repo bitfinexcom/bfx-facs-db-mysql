@@ -5,6 +5,7 @@ const _ = require('lodash')
 const mysql = require('mysql')
 const Base = require('bfx-facs-base')
 const { promisify } = require('util')
+const { promiseFlat } = require('@bitfinex/lib-js-util-promise')
 
 function client (conf, label) {
   const db = mysql.createPool(_.extend({
@@ -89,6 +90,44 @@ class DbFacility extends Base {
         next()
       }
     ], cb)
+  }
+
+  async * queryStream (query, params = []) {
+    const conn = await new Promise((resolve, reject) => {
+      this.cli.getConnection((err, res) => err ? reject(err) : resolve(res))
+    })
+    let aborted = true
+
+    try {
+      let p = promiseFlat()
+
+      const stream = conn.query(query, params)
+      stream.on('error', (err) => p.reject(err))
+      stream.on('result', (row) => {
+        conn.pause()
+        p.resolve(row)
+      })
+      stream.on('end', () => {
+        aborted = false
+        p.resolve()
+      })
+
+      let row
+      do {
+        row = await p.promise
+        if (row) {
+          yield row
+          p = promiseFlat()
+          conn.resume()
+        }
+      } while (row)
+    } finally {
+      if (aborted) {
+        conn.destroy()
+      } else {
+        conn.release()
+      }
+    }
   }
 
   /**

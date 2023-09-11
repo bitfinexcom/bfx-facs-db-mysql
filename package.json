@@ -18,6 +18,7 @@
     "bitfinex"
   ],
   "dependencies": {
+    "@bitfinex/lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git",
     "async": "^3.2.1",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "lodash": "^4.17.21",
@@ -43,6 +44,7 @@
   ],
   "devDependencies": {
     "mocha": "^10.0.0",
+    "sinon": "^15.2.0",
     "standard": "^17.0.0"
   }
 }

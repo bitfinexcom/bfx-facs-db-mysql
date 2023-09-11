@@ -52,6 +52,12 @@ fac.cli.query(
     done()
   })
 
+// async iterator stream usage
+const stream = fac.queryStream('SELECT * FROM sampleTestTable WHERE age >= ?', [25])
+for await (const row of stream) {
+  console.log(row)
+}
+
 // closing resources
 fac.stop((err) => {
   if (err) console.log('an error occurred', err)
