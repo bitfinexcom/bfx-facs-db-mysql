@@ -22,7 +22,7 @@
     "async": "^3.2.1",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "lodash": "^4.17.21",
-    "mysql": "^2.18.1"
+    "mysql2": "^3.9.2"
   },
   "engine": {
     "node": ">=8.0"

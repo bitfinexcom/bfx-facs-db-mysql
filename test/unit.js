@@ -464,7 +464,7 @@ describe('DbFacility tests', () => {
       await sleep(1000)
       calls = spy.getCalls().map(x => x.args)
       resultCalls = calls.filter(x => x[0] === 'result')
-      closeCalls = calls.filter(x => x[0] === 'close')
+      closeCalls = calls.filter(x => ['finish', 'close'].includes(x[0]))
 
       spy.restore()
 
