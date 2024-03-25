@@ -2,7 +2,7 @@
 
 const async = require('async')
 const _ = require('lodash')
-const mysql = require('mysql2')
+const mysql = require('mysql')
 const Base = require('bfx-facs-base')
 const { promisify } = require('util')
 const { promiseFlat } = require('@bitfinex/lib-js-util-promise')
