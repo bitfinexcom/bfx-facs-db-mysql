@@ -19,13 +19,13 @@
   ],
   "dependencies": {
     "@bitfinex/lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git",
-    "async": "^3.2.1",
+    "async": "^3.2.6",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "lodash": "^4.17.21",
-    "mysql": "^2.18.1"
+    "mysql2": "^3.15.3"
   },
   "engine": {
-    "node": ">=8.0"
+    "node": ">=18.0"
   },
   "license": "Apache-2.0",
   "repository": {
