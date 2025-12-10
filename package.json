@@ -1,5 +1,5 @@
 {
-  "name": "bfx-facs-db-mysql",
+  "name": "@bitfinex/bfx-facs-db-mysql",
   "version": "1.0.0",
   "private": false,
   "description": "Bitfinex DB MySQL Facility",
@@ -24,8 +24,8 @@
     "lodash": "^4.17.21",
     "mysql": "^2.18.1"
   },
-  "engine": {
-    "node": ">=8.0"
+  "engines": {
+    "node": ">=16.0"
   },
   "license": "Apache-2.0",
   "repository": {
