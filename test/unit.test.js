@@ -6,7 +6,6 @@ const DbFacility = require('../index')
 const { DbTransactionError } = DbFacility
 const fs = require('fs')
 const path = require('path')
-const sinon = require('sinon')
 const sleep = require('timers/promises').setTimeout
 const { EventEmitter } = require('events')
 
@@ -43,9 +42,9 @@ test('start: should start connection successfully and run query', { timeout: 200
     test: {
       host: process.env.DB_FAC_HOST || '127.0.0.1',
       port: +(process.env.DB_FAC_PORT || 3306),
-      user: process.env.DB_FAC_USER || 'root',
-      password: process.env.DB_FAC_PWD || 'root',
-      database: process.env.DB_FAC_DB || 'test_db'
+      user: process.env.DB_FAC_USER || '',
+      password: process.env.DB_FAC_PWD || '',
+      database: process.env.DB_FAC_DB || ''
     }
   }
   fs.writeFileSync(configPath, JSON.stringify(config), { encoding: 'utf-8', flag: 'w' })
@@ -387,8 +386,17 @@ test('queryStream tests', async (t) => {
 
   await t.test('should not fetch new rows unless requested by iterator', async (t) => {
     await sleep(1000)
-    const spy = sinon.spy(EventEmitter.prototype, 'emit')
-    t.teardown(() => spy.restore())
+    const originalEmit = EventEmitter.prototype.emit
+    const events = []
+
+    EventEmitter.prototype.emit = function (...args) {
+      if (args[0] === 'result' || args[0] === 'close') events.push(args)
+      return Reflect.apply(originalEmit, this, args)
+    }
+    t.teardown(() => {
+      EventEmitter.prototype.emit = originalEmit
+    })
+
     const stream = fac.queryStream('SELECT * FROM sampleTestTable')
 
     let res = await stream.next()
@@ -398,9 +406,8 @@ test('queryStream tests', async (t) => {
     t.is(res.value?.name, data[1].name)
 
     await sleep(2000)
-    let calls = spy.getCalls().map(x => x.args)
-    let resultCalls = calls.filter(x => x[0] === 'result')
-    let closeCalls = calls.filter(x => x[0] === 'close')
+    let resultCalls = events.filter(x => x[0] === 'result')
+    let closeCalls = events.filter(x => x[0] === 'close')
 
     t.is(closeCalls.length, 0)
     t.is(resultCalls.length, 2)
@@ -409,9 +416,8 @@ test('queryStream tests', async (t) => {
     await stream.return()
 
     await sleep(1000)
-    calls = spy.getCalls().map(x => x.args)
-    resultCalls = calls.filter(x => x[0] === 'result')
-    closeCalls = calls.filter(x => x[0] === 'close')
+    resultCalls = events.filter(x => x[0] === 'result')
+    closeCalls = events.filter(x => x[0] === 'close')
 
     t.is(closeCalls.length, 1)
     t.is(resultCalls.length, 2)

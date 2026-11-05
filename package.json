@@ -40,8 +40,7 @@
   },
   "devDependencies": {
     "@bitfinex/lint-js": "^1.1.0",
-    "brittle": "^4.5.0",
-    "sinon": "^15.2.0"
+    "brittle": "^4.5.0"
   },
   "engines": {
     "node": ">=22.0"
