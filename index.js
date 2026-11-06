@@ -1,20 +1,20 @@
 'use strict'
 
 const async = require('async')
-const _ = require('lodash')
 const mysql = require('mysql')
 const Base = require('@bitfinex/bfx-facs-base')
 const { promisify } = require('util')
 const { promiseFlat } = require('@bitfinex/lib-js-util-promise')
 
 function client (conf, label) {
-  const db = mysql.createPool(_.extend({
+  const db = mysql.createPool({
     connectionLimit: 100,
     timezone: '+00:00',
     supportBigNumbers: true,
     bigNumberStrings: true,
-    dateStrings: true
-  }, conf))
+    dateStrings: true,
+    ...conf
+  })
 
   db.on('error', err => {
     console.error(label || 'generic', err)
@@ -69,11 +69,14 @@ class DbFacility extends Base {
     async.series([
       next => { super._start(next) },
       next => {
-        this.cli = client(_.pick(
-          this.conf,
-          ['host', 'port', 'user', 'password', 'database']
-        ))
+        const connConf = {}
+        for (const k of ['host', 'port', 'user', 'password', 'database']) {
+          if (Object.hasOwn(this.conf, k)) {
+            connConf[k] = this.conf[k]
+          }
+        }
 
+        this.cli = client(connConf)
         this.queryAsync = promisify(this.cli.query.bind(this.cli))
 
         next()

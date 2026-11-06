@@ -35,7 +35,6 @@
     "@bitfinex/bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git#v2.0.0",
     "@bitfinex/lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git#v1.1.0",
     "async": "^3.2.6",
-    "lodash": "^4.18.1",
     "mysql": "^2.18.1"
   },
   "devDependencies": {
